@@ -446,6 +446,16 @@ nvm_do_install() {
     if nvm_profile_is_bash_or_zsh "${NVM_PROFILE-}"; then
       BASH_OR_ZSH=true
     fi
+    if [ -f "$NVM_PROFILE" ] && [ ! -w "$NVM_PROFILE" ]; then
+      local OWNER_NAME
+      OWNER_NAME="$(command ls -l "$NVM_PROFILE" | command awk '{print $3}')"
+      nvm_echo >&2 "=> Error: $NVM_PROFILE is not writable!"
+      nvm_echo >&2 "=> The file is currently owned by '$OWNER_NAME'. Only the owner or root can modify it."
+      nvm_echo >&2 "=> Fix this by running: sudo chown \$(whoami) $NVM_PROFILE"
+      nvm_echo >&2 "=> OR, append the following lines to $NVM_PROFILE yourself:"
+      command printf '%b' "${SOURCE_STR}"
+      exit 1
+    fi
     if ! command grep -qc '/nvm.sh' "$NVM_PROFILE"; then
       nvm_echo "=> Appending nvm source string to $NVM_PROFILE"
       command printf "${SOURCE_STR}" >> "$NVM_PROFILE"
