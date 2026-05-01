@@ -56,6 +56,23 @@ nvm_profile_is_bash_or_zsh() {
 # * The method used ("script" or "git" in the script, defaults to "git")
 # NVM_SOURCE always takes precedence unless the method is "script-nvm-exec"
 #
+nvm_check_file_writable(){
+  if [ -f "$1" ]; then 
+    if ! [ -w "$1"]; then
+      local OWNER_NAME
+      OWNER_NAME=command "$(command stat -c '%U' "$1"  2>/dev/null|| command stat -f '%Su' "$1" 2>/dev/null)"
+      nvm_echo >&2 "=> Error: $1 is not writable!"
+      nvm_echo >&2 "=> This file is currently owned by $OWNER_NAME."
+      nvm_echo >&2 "=> Please ensure you have write access to this file."
+      nvm_echo >&2 "=> If this is a personal machine, you might run: sudo chown $(id -un) \"$1\""
+      nvm_echo >&2 "=> On managed systems, please contact your administrator."
+    return 1
+  elif [-w "$1"]; then
+    return 0
+  else
+    return 2
+  fi  
+}
 nvm_source() {
   local NVM_GITHUB_REPO
   NVM_GITHUB_REPO="${NVM_INSTALL_GITHUB_REPO:-nvm-sh/nvm}"
@@ -446,17 +463,10 @@ nvm_do_install() {
     if nvm_profile_is_bash_or_zsh "${NVM_PROFILE-}"; then
       BASH_OR_ZSH=true
     fi
-    if [ -f "$NVM_PROFILE" ] && [ ! -w "$NVM_PROFILE" ]; then
-      local OWNER_NAME
-      OWNER_NAME="$(command ls -l "$NVM_PROFILE" | command awk '{print $3}')"
-      nvm_echo >&2 "=> Error: $NVM_PROFILE is not writable!"
-      nvm_echo >&2 "=> The file is currently owned by '$OWNER_NAME'. Only the owner or root can modify it."
-      nvm_echo >&2 "=> Fix this by running: sudo chown \$(whoami) $NVM_PROFILE"
-      nvm_echo >&2 "=> OR, append the following lines to $NVM_PROFILE yourself:"
-      command printf '%b' "${SOURCE_STR}"
-      exit 1
-    fi
     if ! command grep -qc '/nvm.sh' "$NVM_PROFILE"; then
+      if ! nvm_check_file_writable "${NVM_PROFILE}"; then
+        exit(1)
+      fi
       nvm_echo "=> Appending nvm source string to $NVM_PROFILE"
       command printf "${SOURCE_STR}" >> "$NVM_PROFILE"
     else
@@ -464,6 +474,9 @@ nvm_do_install() {
     fi
     # shellcheck disable=SC2016
     if ${BASH_OR_ZSH} && ! command grep -qc '$NVM_DIR/bash_completion' "$NVM_PROFILE"; then
+      if ! nvm_check_file_writable "${NVM_PROFILE}"; then
+        exit(1)
+      fi
       nvm_echo "=> Appending bash_completion source string to $NVM_PROFILE"
       command printf "$COMPLETION_STR" >> "$NVM_PROFILE"
     else
