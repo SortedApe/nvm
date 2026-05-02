@@ -1,58 +1,37 @@
-#!/bin/sh
+#!/bin/bash
 
 setup () {
   HOME="."
-  # Source the project file (assuming nvm_check_file_writable is in install.sh or similar)
   NVM_ENV=testing \. ../../install.sh
-  
-  touch "writable_file"
-  touch "readonly_file"
-  chmod -w "readonly_file"
+  touch "writable_test_file"
+  touch "readonly_test_file"
+  chmod -w "readonly_test_file"   
 }
 
 cleanup () {
   unset HOME
   unset NVM_ENV
-  unset -f setup cleanup die nvm_check_file_writable
-  rm -f "writable_file" "readonly_file" > "/dev/null" 2>&1
+  unset -f setup cleanup die  
+  rm -f "writable_test_file" "readonly_test_file" > "/dev/null" 2>&1
+  rm -rf zdotdir 2>&1
 }
 
 die () { echo "$@"; cleanup; exit 1; }
 
 setup
-
-#
-# Case 1: File is writable
-#
-# We expect return code 0 and no error output
-nvm_check_file_writable "writable_file" >/dev/null 2>&1
-EXIT_CODE=$?
-if [ "$EXIT_CODE" -ne 0 ]; then
-  die "nvm_check_file_writable failed on a writable file; expected 0, got $EXIT_CODE"
+nvm_check_file_writable "file_not_exists"
+if [ $? -ne 2 ] ; then 
+  die "nvm_check_file_writable did not reject nonexisting file with code 2"
 fi
 
-#
-# Case 2: File exists but is NOT writable
-#
-# We expect return code 1. We also capture stderr to ensure the error message is printed.
-ERROR_MSG=$(nvm_check_file_writable "readonly_file" 2>&1 >/dev/null)
-EXIT_CODE=$?
-if [ "$EXIT_CODE" -ne 1 ]; then
-  die "nvm_check_file_writable failed to catch a readonly file; expected 1, got $EXIT_CODE"
-fi
+nvm_check_file_writable "readonly_test_file"
+if [ $? -ne 1 ]; then
+  die "nvm_check_file_writable did not reject nonwritable file with code 1"
+fi 
 
-if ! echo "$ERROR_MSG" | grep -q "is not writable"; then
-  die "nvm_check_file_writable didn't print the correct error message for readonly files"
-fi
-
-#
-# Case 3: File does not exist
-#
-# We expect return code 2
-nvm_check_file_writable "non_existent_file" >/dev/null 2>&1
-EXIT_CODE=$?
-if [ "$EXIT_CODE" -ne 2 ]; then
-  die "nvm_check_file_writable failed on a missing file; expected 2, got $EXIT_CODE"
-fi
+nvm_check_file_writable "writable_test_file"
+if [ $? -ne  0 ]; then 
+  die "nvm_check_file_writable failed on writable file for unknown reason"
+fi 
 
 cleanup

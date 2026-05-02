@@ -58,7 +58,7 @@ nvm_profile_is_bash_or_zsh() {
 #
 nvm_check_file_writable(){
   if [ -f "$1" ]; then 
-    if ! [ -w "$1"]; then
+    if ! [ -w "$1" ]; then
       local OWNER_NAME
       OWNER_NAME=command "$(command stat -c '%U' "$1"  2>/dev/null|| command stat -f '%Su' "$1" 2>/dev/null)"
       nvm_echo >&2 "=> Error: $1 is not writable!"
@@ -66,9 +66,10 @@ nvm_check_file_writable(){
       nvm_echo >&2 "=> Please ensure you have write access to this file."
       nvm_echo >&2 "=> If this is a personal machine, you might run: sudo chown $(id -un) \"$1\""
       nvm_echo >&2 "=> On managed systems, please contact your administrator."
-    return 1
-  elif [-w "$1"]; then
-    return 0
+      return 1
+    elif [ -w "$1" ]; then
+      return 0
+    fi
   else
     return 2
   fi  
@@ -465,7 +466,7 @@ nvm_do_install() {
     fi
     if ! command grep -qc '/nvm.sh' "$NVM_PROFILE"; then
       if ! nvm_check_file_writable "${NVM_PROFILE}"; then
-        exit(1)
+        exit 1
       fi
       nvm_echo "=> Appending nvm source string to $NVM_PROFILE"
       command printf "${SOURCE_STR}" >> "$NVM_PROFILE"
@@ -475,7 +476,7 @@ nvm_do_install() {
     # shellcheck disable=SC2016
     if ${BASH_OR_ZSH} && ! command grep -qc '$NVM_DIR/bash_completion' "$NVM_PROFILE"; then
       if ! nvm_check_file_writable "${NVM_PROFILE}"; then
-        exit(1)
+        exit 1
       fi
       nvm_echo "=> Appending bash_completion source string to $NVM_PROFILE"
       command printf "$COMPLETION_STR" >> "$NVM_PROFILE"
