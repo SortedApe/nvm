@@ -31,6 +31,7 @@
 - [Usage](#usage)
   - [Long-term Support](#long-term-support)
   - [Migrating Global Packages While Installing](#migrating-global-packages-while-installing)
+  - [Offline Install](#offline-install)
   - [Default Global Packages From File While Installing](#default-global-packages-from-file-while-installing)
   - [io.js](#iojs)
   - [System Version of Node](#system-version-of-node)
@@ -76,25 +77,25 @@
 
 **Example:**
 ```sh
-$ nvm use 16
-Now using node v16.9.1 (npm v7.21.1)
+$ nvm install 24
+Now using node v24.14.0 (npm v11.9.0)
 $ node -v
-v16.9.1
-$ nvm use 14
-Now using node v14.18.0 (npm v6.14.15)
+v24.14.0
+$ nvm use 22
+Now using node v22.22.1 (npm v10.9.4)
 $ node -v
-v14.18.0
-$ nvm install 12
-Now using node v12.22.6 (npm v6.14.5)
+v22.22.1
+$ nvm use 20
+Now using node v20.20.1 (npm v10.8.2)
 $ node -v
-v12.22.6
+v20.20.1
 ```
 
 Simple as that!
 
 
 ## About
-nvm is a version manager for [node.js](https://nodejs.org/en/), designed to be installed per-user, and invoked per-shell. `nvm` works on any POSIX-compliant shell (sh, dash, ksh, zsh, bash), in particular on these platforms: unix, macOS, and [windows WSL](https://github.com/nvm-sh/nvm#important-notes).
+nvm is a version manager for [node.js](https://nodejs.org/en/), designed to be installed per-user, and invoked per-shell. `nvm` works on any POSIX-compliant shell (sh, dash, ksh, zsh, bash), in particular on these platforms: unix, macOS, and [Windows WSL](https://github.com/nvm-sh/nvm#important-notes).
 
 <a id="installation-and-update"></a>
 <a id="install-script"></a>
@@ -145,7 +146,7 @@ When invoking bash as a non-interactive shell, like in a Docker container, none 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # Create a script file sourced by both interactive and non-interactive bash shells
-ENV BASH_ENV /home/user/.bash_env
+ENV BASH_ENV "${HOME}/.bash_env"
 RUN touch "${BASH_ENV}"
 RUN echo '. "${BASH_ENV}"' >> ~/.bashrc
 
@@ -278,7 +279,7 @@ which should output `nvm` if the installation was successful. Please note that `
 
 If you're running a system without prepackaged binary available, which means you're going to install node or io.js from its source code, you need to make sure your system has a C++ compiler. For OS X, Xcode will work, for Debian/Ubuntu based GNU/Linux, the `build-essential` and `libssl-dev` packages work.
 
-**Note:** `nvm` also supports Windows in some cases. It should work through WSL (Windows Subsystem for Linux) depending on the version of WSL. It should also work with [GitBash](https://gitforwindows.org/) (MSYS) or [Cygwin](https://cygwin.com). Otherwise, for Windows, a few alternatives exist, which are neither supported nor developed by us:
+**Note:** `nvm` also supports Windows in some cases. It should work through WSL (Windows Subsystem for Linux) depending on the version of WSL. It should also work with [Git Bash](https://gitforwindows.org/) (MSYS) or [Cygwin](https://cygwin.com). Otherwise, for Windows, a few alternatives exist, which are neither supported nor developed by us:
 
   - [nvm-windows](https://github.com/coreybutler/nvm-windows)
   - [nodist](https://github.com/marcelklehr/nodist)
@@ -481,6 +482,22 @@ nvm install-latest-npm
 
 If you've already gotten an error to the effect of "npm does not support Node.js", you'll need to (1) revert to a previous node version (`nvm ls` & `nvm use <your latest _working_ version from the ls>`), (2) delete the newly created node version (`nvm uninstall <your _broken_ version of node from the ls>`), then (3) rerun your `nvm install` with the `--latest-npm` flag.
 
+
+### Offline Install
+
+If you've previously downloaded a node version (or it's still in the cache), you can install it without any network access using the `--offline` flag:
+
+```sh
+nvm install --offline 14.7.0
+```
+
+This resolves versions using only locally installed versions and cached downloads. It will not attempt to download anything. This is useful in air-gapped environments, on planes, or when you want to avoid network latency.
+
+You can combine `--offline` with `--lts` to install the latest cached LTS version (as long as LTS aliases have been populated by a prior `nvm ls-remote --lts`):
+
+```sh
+nvm install --offline --lts
+```
 
 ### Default Global Packages From File While Installing
 
@@ -923,7 +940,7 @@ Alpine Linux, unlike mainstream/traditional Linux distributions, is based on [Bu
 
 There is a `-s` flag for `nvm install` which requests nvm download Node source and compile it locally.
 
-If installing nvm on Alpine Linux *is* still what you want or need to do, you should be able to achieve this by running the following from you Alpine Linux shell, depending on which version you are using:
+If installing nvm on Alpine Linux *is* still what you want or need to do, you should be able to achieve this by running the following from your Alpine Linux shell, depending on which version you are using:
 
 ### Alpine Linux 3.13+
 ```sh

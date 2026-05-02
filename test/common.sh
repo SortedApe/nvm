@@ -1,15 +1,41 @@
+# Runs a command once and captures stdout and exit code.
+# Suppresses xtrace in the subshell. Discards stderr.
+#
+# Sets: CAPTURED_STDOUT, CAPTURED_EXIT_CODE
+#
+# Usage:
+#   try nvm_version current
+#   [ "$CAPTURED_STDOUT" = "v20.0.0" ] || die "wrong output"
+#   [ "$CAPTURED_EXIT_CODE" = 0 ] || die "wrong exit code"
+try() {
+  CAPTURED_STDOUT="$(set +x; "$@" 2>/dev/null)" && CAPTURED_EXIT_CODE=0 || CAPTURED_EXIT_CODE=$?
+}
+
+# Runs a command once and captures stderr and exit code.
+# Suppresses xtrace in the subshell. Discards stdout.
+#
+# Sets: CAPTURED_STDERR, CAPTURED_EXIT_CODE
+#
+# Usage:
+#   try_err nvm_alias
+#   [ "$CAPTURED_STDERR" = "An alias is required." ] || die "wrong error"
+#   [ "$CAPTURED_EXIT_CODE" = 1 ] || die "wrong exit code"
+try_err() {
+  CAPTURED_STDERR="$(set +x; "$@" 2>&1 >/dev/null)" && CAPTURED_EXIT_CODE=0 || CAPTURED_EXIT_CODE=$?
+}
+
 assert_ok() {
   local FUNCTION=$1
   shift
 
-  $($FUNCTION $@) || die '"'"$FUNCTION $@"'" should have succeeded, but failed'
+  "$FUNCTION" "$@" || die '"'"$FUNCTION $@"'" should have succeeded, but failed'
 }
 
 assert_not_ok() {
   local FUNCTION=$1
   shift
 
-  ! $($FUNCTION $@) || die '"'"$FUNCTION $@"'" should have failed, but succeeded'
+  ! "$FUNCTION" "$@" || die '"'"$FUNCTION $@"'" should have failed, but succeeded'
 }
 
 strip_colors() {
@@ -20,7 +46,7 @@ strip_colors() {
 
 make_echo() {
   echo "#!/bin/sh" > "$1"
-  echo "echo \"${2}\"" > "$1"
+  echo "echo \"${2}\"" >> "$1"
   chmod a+x "$1"
 }
 

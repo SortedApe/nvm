@@ -85,7 +85,7 @@ nvm_source() {
 IT IS POSSIBLE THAT SOMEONE IS DOING SOMETHING NASTY!
 
 The default repository for this install is \`nvm-sh/nvm\`,
-but the environment variables \`\$NVM_INSTALL_GITHUB_REPO\` is
+but the environment variable \`\$NVM_INSTALL_GITHUB_REPO\` is
 currently set to \`${NVM_GITHUB_REPO}\`.
 
 If this is not intentional, interrupt this installation and
@@ -167,7 +167,10 @@ install_nvm_from_git() {
     fetch_error="Failed to fetch origin with $NVM_VERSION. Please report this!"
     nvm_echo "=> Downloading nvm from git to '$INSTALL_DIR'"
     command printf '\r=> '
-    mkdir -p "${INSTALL_DIR}"
+    mkdir -p "${INSTALL_DIR}" || {
+      nvm_echo >&2 "Failed to create directory '${INSTALL_DIR}'"
+      exit 2
+    }
     if [ "$(ls -A "${INSTALL_DIR}")" ]; then
       # Initializing repo
       command git init "${INSTALL_DIR}" || {
@@ -234,7 +237,7 @@ nvm_install_node() {
   local CURRENT_NVM_NODE
 
   CURRENT_NVM_NODE="$(nvm_version current)"
-  if [ "$(nvm_version "$NODE_VERSION_LOCAL")" == "$CURRENT_NVM_NODE" ]; then
+  if [ "$(nvm_version "$NODE_VERSION_LOCAL")" = "$CURRENT_NVM_NODE" ]; then
     nvm_echo "=> Node.js version $NODE_VERSION_LOCAL has been successfully installed"
   else
     nvm_echo >&2 "Failed to install Node.js $NODE_VERSION_LOCAL"
@@ -252,7 +255,10 @@ install_nvm_as_script() {
   NVM_BASH_COMPLETION_SOURCE="$(nvm_source script-nvm-bash-completion)"
 
   # Downloading to $INSTALL_DIR
-  mkdir -p "$INSTALL_DIR"
+  mkdir -p "$INSTALL_DIR" || {
+    nvm_echo >&2 "Failed to create directory '$INSTALL_DIR'"
+    return 1
+  }
   if [ -f "$INSTALL_DIR/nvm.sh" ]; then
     nvm_echo "=> nvm is already installed in $INSTALL_DIR, trying to update the script"
   else
@@ -392,7 +398,10 @@ nvm_do_install() {
     fi
 
     if [ "${NVM_DIR}" = "$(nvm_default_install_dir)" ]; then
-      mkdir "${NVM_DIR}"
+      mkdir "${NVM_DIR}" || {
+        nvm_echo >&2 "Failed to create directory '${NVM_DIR}'"
+        exit 2
+      }
     else
       nvm_echo >&2 "You have \$NVM_DIR set to \"${NVM_DIR}\", but that directory does not exist. Check your profile files and environment."
       exit 1
@@ -452,13 +461,13 @@ nvm_do_install() {
   elif [ -z "${NVM_PROFILE-}" ] ; then
     local TRIED_PROFILE
     if [ -n "${PROFILE}" ]; then
-      TRIED_PROFILE="${NVM_PROFILE} (as defined in \$PROFILE), "
+      TRIED_PROFILE="${PROFILE} (as defined in \$PROFILE), "
     fi
     nvm_echo "=> Profile not found. Tried ${TRIED_PROFILE-}~/.bashrc, ~/.bash_profile, ~/.zprofile, ~/.zshrc, and ~/.profile."
     nvm_echo "=> Create one of them and run this script again"
     nvm_echo "   OR"
     nvm_echo "=> Append the following lines to the correct file yourself:"
-    command printf "${SOURCE_STR}"
+    command printf '%b' "${SOURCE_STR}"
     nvm_echo
   else
     if nvm_profile_is_bash_or_zsh "${NVM_PROFILE-}"; then
@@ -469,7 +478,7 @@ nvm_do_install() {
         exit 1
       fi
       nvm_echo "=> Appending nvm source string to $NVM_PROFILE"
-      command printf "${SOURCE_STR}" >> "$NVM_PROFILE"
+      command printf '%b' "${SOURCE_STR}" >> "$NVM_PROFILE"
     else
       nvm_echo "=> nvm source string already in ${NVM_PROFILE}"
     fi
@@ -479,7 +488,7 @@ nvm_do_install() {
         exit 1
       fi
       nvm_echo "=> Appending bash_completion source string to $NVM_PROFILE"
-      command printf "$COMPLETION_STR" >> "$NVM_PROFILE"
+      command printf '%b' "$COMPLETION_STR" >> "$NVM_PROFILE"
     else
       nvm_echo "=> bash_completion source string already in ${NVM_PROFILE}"
     fi
@@ -500,7 +509,7 @@ nvm_do_install() {
   nvm_reset
 
   nvm_echo "=> Close and reopen your terminal to start using nvm or run the following to use it now:"
-  command printf "${SOURCE_STR}"
+  command printf '%b' "${SOURCE_STR}"
   if ${BASH_OR_ZSH} ; then
     command printf "${COMPLETION_STR}"
   fi
